@@ -89,9 +89,9 @@ def render_steps(result: dict) -> None:
 def render_diagnosis(result: dict) -> None:
     diag = result["diagnosis"]
     if diag["status"] == "pass":
-        st.success(diag["message"], icon=" ")
+        st.success(diag["message"], icon="✅")
     elif diag["status"] == "fail":
-        st.error(diag["message"], icon=" ")
+        st.error(diag["message"], icon="❌")
     else:
         st.info(diag["message"], icon="ℹ️")
 
