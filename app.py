@@ -283,10 +283,10 @@ with tab2:
             render_steps(r)
 
     else:
-        st.button("Limpiar todo", key="clear_vdi", on_click=limpiar_todo)
+        st.button("Limpiar", key="clear_vdi", on_click=limpiar_todo)
 
         c1, c2 = st.columns(2)
-       with c1:
+        with c1:
             vdi_length = st.number_input("L (Longitud, m)",
                                          value=st.session_state.get("vdi_length", 50.0),
                                          min_value=0.1, step=1.0, format="%.2f", key="vdi_l")
