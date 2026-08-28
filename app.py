@@ -1,21 +1,19 @@
-"""
-app.py — Interfaz Streamlit para la Calculadora de Instalaciones Eléctricas.
-
-4 módulos accesibles por pestañas:
-  1. Ley de Ohm / Watt / Circuitos serie / Consumo energético
-  2. Caída de tensión y selección de calibre
-  3. Dimensionamiento de tubería Conduit PVC
-  4. Asistente de aislamiento y entorno ambiental
-
-Ejecutar:  streamlit run app.py
-"""
-
 from __future__ import annotations
 
 import math
+from importlib import import_module
 
-import plotly.graph_objects as go
-import streamlit as st
+try:
+    go = import_module("plotly.graph_objects")
+except ModuleNotFoundError:
+    go = None
+
+try:
+    st = import_module("streamlit")
+except ModuleNotFoundError as exc:
+    raise ModuleNotFoundError(
+        "Streamlit no está instalado. Ejecuta: pip install streamlit"
+    ) from exc
 
 from app_config import (
     AMPACITY_COPPER,
@@ -42,11 +40,6 @@ from engine import (
     recommend_insulation,
 )
 
-
-# ══════════════════════════════════════════════════════════════════
-# Configuración de página
-# ══════════════════════════════════════════════════════════════════
-
 st.set_page_config(
     page_title="Calculadora Eléctrica BT",
     page_icon="⚡",
@@ -54,7 +47,6 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# ── CSS personalizado ──
 st.markdown("""
 <style>
 div[data-testid="stMetric"] {
@@ -80,19 +72,13 @@ details[data-testid="stExpander"] {
 </style>
 """, unsafe_allow_html=True)
 
-STEP_ICONS = ["📐", "🔢", "📊", "🔍"]
-
-
-# ══════════════════════════════════════════════════════════════════
-# Funciones de renderizado comunes
-# ══════════════════════════════════════════════════════════════════
+STEP_ICONS = [" ", " ", " ", " "]
 
 
 def render_steps(result: dict) -> None:
-    """Renderiza el desglose paso a paso desde un diccionario de resultado."""
     for i, step in enumerate(result["steps"]):
         icon = STEP_ICONS[i] if i < len(STEP_ICONS) else "📎"
-        expanded = i == len(result["steps"]) - 1  # Último paso expandido
+        expanded = i == len(result["steps"]) - 1
         with st.expander(f"{icon} Paso {i+1}: {step['title']}", expanded=expanded):
             for latex_line in step.get("latex", []):
                 st.latex(latex_line)
@@ -101,7 +87,6 @@ def render_steps(result: dict) -> None:
 
 
 def render_diagnosis(result: dict) -> None:
-    """Renderiza el badge de diagnóstico normativo."""
     diag = result["diagnosis"]
     if diag["status"] == "pass":
         st.success(diag["message"], icon="✅")
@@ -111,31 +96,24 @@ def render_diagnosis(result: dict) -> None:
         st.info(diag["message"], icon="ℹ️")
 
 
-# ══════════════════════════════════════════════════════════════════
-# Encabezado
-# ══════════════════════════════════════════════════════════════════
+def limpiar_todo():
+    st.session_state.clear()
+
 
 st.markdown("""
 <div class="main-header">
-    <h1>⚡ Calculadora de Instalaciones Eléctricas BT</h1>
+    <h1>Calculadora de Instalaciones Eléctricas BT</h1>
     <p>Ley de Ohm · Caída de Tensión · Tubería Conduit · Aislamiento</p>
 </div>
 """, unsafe_allow_html=True)
 
-# ══════════════════════════════════════════════════════════════════
-# Pestañas principales
-# ══════════════════════════════════════════════════════════════════
 
 tab1, tab2, tab3, tab4 = st.tabs([
-    "⚡ Ohm / Watt",
-    "📉 Caída de Tensión",
-    "🔧 Tubería Conduit",
-    "🛡️ Aislamiento",
+    "Ohm / Watt",
+    "Caída de Tensión",
+    "Tubería Conduit",
+    "Aislamiento",
 ])
-
-# ──────────────────────────────────────────────────────────────────
-# TAB 1 — Ley de Ohm / Watt / Serie / Energía
-# ──────────────────────────────────────────────────────────────────
 
 with tab1:
     sub1 = st.radio(
@@ -144,23 +122,13 @@ with tab1:
         horizontal=True, key="sub1",
     )
 
-    # ── Ley de Ohm / Watt ──
     if sub1 == "Ley de Ohm / Watt":
         c1, c2 = st.columns([1, 2])
         with c1:
             mode = st.selectbox("Variables conocidas:", OHM_MODES, key="ohm_mode")
-            ex = EXAMPLES["ohm_watt"]
-            if st.button("📋 Cargar ejemplo", key="ex_ohm"):
-                st.session_state["ohm_mode_val"] = ex["params"]["mode"]
-                st.session_state["ohm_v1"] = ex["params"].get("V", 0)
-                st.session_state["ohm_v2"] = ex["params"].get("I", ex["params"].get("P", 0))
-                st.rerun()
-
-            with st.expander("💡 Ejemplo", expanded=False):
-                st.caption(ex["description"])
+            st.button("Limpiar todo", key="clear_ohm", on_click=limpiar_todo)
 
         with c2:
-            # Inputs dinámicos según el modo
             if mode == "V e I":
                 v1 = st.number_input("V (Voltaje)", value=st.session_state.get("ohm_v1", 120.0),
                                      step=0.1, format="%.2f", key="ohm_vi_v")
@@ -181,12 +149,12 @@ with tab1:
                 v2 = st.number_input("V (Voltaje)", value=st.session_state.get("ohm_v1", 120.0),
                                      step=0.1, format="%.2f", key="ohm_pv_v")
                 params = {"P": v1, "V": v2}
-            else:  # P e I
+            else:
                 v1 = st.number_input("P (Potencia, W)", value=100.0, step=1.0, format="%.2f", key="ohm_pi_p")
                 v2 = st.number_input("I (Corriente, A)", value=2.0, step=0.1, format="%.4f", key="ohm_pi_i")
                 params = {"P": v1, "I": v2}
 
-        if st.button("🚀 Calcular", key="calc_ohm", type="primary"):
+        if st.button("CALCULAR", key="calc_ohm", type="primary"):
             result = calc_ohm_watt(mode, **params)
             st.session_state["ohm_result"] = result
 
@@ -199,18 +167,9 @@ with tab1:
                     st.metric(k, f"{r['results'][k]:.4f} {unit}")
             render_steps(r)
 
-    # ── Circuito Serie ──
-    elif sub1 == "Circuito Serie":
-        ex = EXAMPLES["series"]
-        if st.button("📋 Cargar ejemplo", key="ex_series"):
-            st.session_state["series_v"] = ex["params"]["voltage"]
-            st.session_state["series_n"] = len(ex["params"]["resistances"])
-            for i, val in enumerate(ex["params"]["resistances"]):
-                st.session_state[f"series_r{i}"] = val
-            st.rerun()
 
-        with st.expander("💡 Ejemplo", expanded=False):
-            st.caption(ex["description"])
+    elif sub1 == "Circuito Serie":
+        st.button("Limpiar todo", key="clear_series", on_click=limpiar_todo)
 
         voltage = st.number_input("V fuente (V)", value=st.session_state.get("series_v", 120.0),
                                   step=0.1, format="%.2f", key="series_voltage")
@@ -227,7 +186,7 @@ with tab1:
                 )
                 resistances.append(r_val)
 
-        if st.button("🚀 Calcular", key="calc_series", type="primary"):
+        if st.button("Calcular", key="calc_series", type="primary"):
             result = calc_series_circuit(resistances, voltage)
             st.session_state["series_result"] = result
 
@@ -240,23 +199,14 @@ with tab1:
             with c2:
                 st.metric("I (constante)", f"{r['results']['I']:.4f} A")
 
-            # Tabla de caídas de tensión
             st.markdown("**Caídas de tensión por resistencia:**")
             for i, d in enumerate(r["results"]["drops"]):
                 pct = (d / voltage) * 100
                 st.markdown(f"- R{i+1} = {resistances[i]} Ω → V{i+1} = **{d:.4f} V** ({pct:.1f}%)")
             render_steps(r)
 
-    # ── Consumo Energético ──
     else:
-        ex = EXAMPLES["energy"]
-        if st.button("📋 Cargar ejemplo", key="ex_energy"):
-            st.session_state["energy_p"] = ex["params"]["power"]
-            st.session_state["energy_h"] = ex["params"]["hours"]
-            st.rerun()
-
-        with st.expander("💡 Ejemplo", expanded=False):
-            st.caption(ex["description"])
+        st.button("Limpiar todo", key="clear_energy", on_click=limpiar_todo)
 
         c1, c2 = st.columns(2)
         with c1:
@@ -266,7 +216,7 @@ with tab1:
             hours = st.number_input("t (Tiempo, horas)", value=st.session_state.get("energy_h", 8.0),
                                     step=0.5, format="%.2f", key="energy_hours")
 
-        if st.button("🚀 Calcular", key="calc_energy", type="primary"):
+        if st.button("Calcular", key="calc_energy", type="primary"):
             result = calc_energy(power, hours)
             st.session_state["energy_result"] = result
 
@@ -280,11 +230,6 @@ with tab1:
                 st.metric("Consumo (kWh)", f"{r['results']['kWh']:.4f}")
             render_steps(r)
 
-
-# ──────────────────────────────────────────────────────────────────
-# TAB 2 — Caída de Tensión
-# ──────────────────────────────────────────────────────────────────
-
 with tab2:
     sub2 = st.radio(
         "Modo de cálculo:",
@@ -293,14 +238,7 @@ with tab2:
     )
 
     if sub2 == "Calcular ΔV (directo)":
-        ex = EXAMPLES["voltage_drop"]
-        if st.button("📋 Cargar ejemplo", key="ex_vd"):
-            for k, v in ex["params"].items():
-                st.session_state[f"vd_{k}"] = v
-            st.rerun()
-
-        with st.expander("💡 Ejemplo", expanded=False):
-            st.caption(ex["description"])
+        st.button("Limpiar todo", key="clear_vd", on_click=limpiar_todo)
 
         c1, c2, c3 = st.columns(3)
         with c1:
@@ -326,7 +264,7 @@ with tab2:
                                         st.session_state.get("vd_circuit_type", "derivado")),
                                     key="vd_ct")
 
-        if st.button("🚀 Calcular", key="calc_vd", type="primary"):
+        if st.button("CALCULAR", key="calc_vd", type="primary"):
             result = calc_voltage_drop(vd_length, vd_current, vd_material,
                                        vd_awg, vd_voltage, vd_ctype)
             st.session_state["vd_result"] = result
@@ -342,35 +280,10 @@ with tab2:
             with c3:
                 limit = r["results"]["limit_pct"]
                 st.metric("Límite normativo", f"{limit:.0f} %")
-
-            # Gráfico de barras comparativo
-            fig = go.Figure()
-            fig.add_trace(go.Bar(
-                x=["Caída actual", "Límite normativo"],
-                y=[r["results"]["delta_v_pct"], limit],
-                marker_color=["#e74c3c" if r["results"]["delta_v_pct"] > limit else "#27ae60",
-                               "#3498db"],
-                text=[f"{r['results']['delta_v_pct']:.2f}%", f"{limit:.0f}%"],
-                textposition="outside",
-            ))
-            fig.update_layout(
-                title="Comparación de Caída de Tensión",
-                yaxis_title="% ΔV",
-                height=350,
-                showlegend=False,
-            )
-            st.plotly_chart(fig, use_container_width=True)
             render_steps(r)
 
-    else:  # Modo inverso
-        ex = EXAMPLES["voltage_drop_inv"]
-        if st.button("📋 Cargar ejemplo", key="ex_vdi"):
-            for k, v in ex["params"].items():
-                st.session_state[f"vdi_{k}"] = v
-            st.rerun()
-
-        with st.expander("💡 Ejemplo", expanded=False):
-            st.caption(ex["description"])
+    else:
+        st.button("Limpiar todo", key="clear_vdi", on_click=limpiar_todo)
 
         c1, c2 = st.columns(2)
         with c1:
@@ -393,7 +306,7 @@ with tab2:
                                        min_value=0.1, max_value=10.0, step=0.5,
                                        format="%.1f", key="vdi_drop")
 
-        if st.button("🚀 Calcular", key="calc_vdi", type="primary"):
+        if st.button("CALCULAR", key="calc_vdi", type="primary"):
             result = calc_min_conductor(vdi_length, vdi_current, vdi_material,
                                         vdi_voltage, vdi_drop)
             st.session_state["vdi_result"] = result
@@ -410,23 +323,9 @@ with tab2:
                 st.metric("% ΔV real", f"{r['results']['dv_actual_pct']:.2f} %")
             render_steps(r)
 
-
-# ──────────────────────────────────────────────────────────────────
-# TAB 3 — Tubería Conduit PVC
-# ──────────────────────────────────────────────────────────────────
-
 with tab3:
-    ex_c = EXAMPLES["conduit"]
-    if st.button("📋 Cargar ejemplo", key="ex_conduit"):
-        st.session_state["conduit_rows"] = [
-            dict(c) for c in ex_c["params"]["conductors"]
-        ]
-        st.rerun()
+    st.button("Limpiar todo", key="clear_conduit", on_click=limpiar_todo)
 
-    with st.expander("💡 Ejemplo", expanded=False):
-        st.caption(ex_c["description"])
-
-    # Inicializar filas de conductores
     if "conduit_rows" not in st.session_state:
         st.session_state["conduit_rows"] = [
             {"qty": 3, "awg": "12", "insulation": "THHN"},
@@ -434,21 +333,19 @@ with tab3:
 
     st.markdown("#### Conductores en la tubería")
 
-    # Botones agregar/quitar
     bc1, bc2, _ = st.columns([1, 1, 3])
     with bc1:
-        if st.button("➕ Agregar fila", key="add_row"):
+        if st.button("Agregar fila", key="add_row"):
             st.session_state["conduit_rows"].append(
                 {"qty": 1, "awg": "12", "insulation": "THHN"}
             )
             st.rerun()
     with bc2:
         if len(st.session_state["conduit_rows"]) > 1:
-            if st.button("➖ Quitar última", key="rm_row"):
+            if st.button("Quitar ultima", key="rm_row"):
                 st.session_state["conduit_rows"].pop()
                 st.rerun()
 
-    # Renderizar filas
     insulation_options = ["THHN", "THW/TW", "THWN", "XHHW"]
     awg_options = list(AWG_AREA_MM2.keys())
 
@@ -473,10 +370,10 @@ with tab3:
                 index=ins_idx, key=f"cins_{i}",
             )
         conductors_input.append({"qty": qty, "awg": awg, "insulation": ins})
-        # Actualizar session state
+
         st.session_state["conduit_rows"][i] = {"qty": qty, "awg": awg, "insulation": ins}
 
-    if st.button("🚀 Calcular", key="calc_conduit", type="primary"):
+    if st.button("CALCULAR", key="calc_conduit", type="primary"):
         result = calc_conduit_fill(conductors_input)
         st.session_state["conduit_result"] = result
 
@@ -486,60 +383,20 @@ with tab3:
 
         c1, c2, c3, c4 = st.columns(4)
         with c1:
-            st.metric("Área conductores", f"{r['results']['total_area']:.2f} mm²")
+            st.metric("Area conductores", f"{r['results']['total_area']:.2f} mm2")
         with c2:
-            st.metric("Área tubo mínima", f"{r['results']['a_tube_min']:.2f} mm²")
+            st.metric("Area tubo minima", f"{r['results']['a_tube_min']:.2f} mm2")
         with c3:
             sel = r["results"]["selected_conduit"] or "N/A"
-            st.metric("Tubería", sel)
+            st.metric("Tuberia", sel)
         with c4:
             fp = r["results"].get("fill_actual_pct")
             st.metric("Relleno real", f"{fp:.1f} %" if fp else "N/A")
 
-        # Gauge de relleno con plotly
-        if r["results"]["selected_conduit"]:
-            fill_pct = r["results"]["fill_actual_pct"]
-            limit_pct = r["results"]["fill_factor"] * 100
-
-            fig = go.Figure(go.Indicator(
-                mode="gauge+number",
-                value=fill_pct,
-                title={"text": "Factor de Relleno (%)"},
-                gauge={
-                    "axis": {"range": [0, 100]},
-                    "bar": {"color": "#27ae60" if fill_pct <= limit_pct else "#e74c3c"},
-                    "steps": [
-                        {"range": [0, limit_pct], "color": "rgba(46,204,113,0.15)"},
-                        {"range": [limit_pct, 100], "color": "rgba(231,76,60,0.15)"},
-                    ],
-                    "threshold": {
-                        "line": {"color": "#e74c3c", "width": 3},
-                        "thickness": 0.8,
-                        "value": limit_pct,
-                    },
-                },
-                number={"suffix": "%"},
-            ))
-            fig.update_layout(height=300)
-            st.plotly_chart(fig, use_container_width=True)
-
         render_steps(r)
 
-
-# ──────────────────────────────────────────────────────────────────
-# TAB 4 — Asistente de Aislamiento
-# ──────────────────────────────────────────────────────────────────
-
 with tab4:
-    ex_ins = EXAMPLES["insulation"]
-    if st.button("📋 Cargar ejemplo", key="ex_ins"):
-        st.session_state["ins_env"] = ex_ins["params"]["environment"]
-        st.session_state["ins_temp"] = ex_ins["params"]["min_temp"]
-        st.session_state["ins_ls"] = ex_ins["params"]["low_smoke"]
-        st.rerun()
-
-    with st.expander("💡 Ejemplo", expanded=False):
-        st.caption(ex_ins["description"])
+    st.button("Limpiar todo", key="clear_ins", on_click=limpiar_todo)
 
     c1, c2, c3 = st.columns(3)
     environments = ["seco", "húmedo", "mojado"]
@@ -559,7 +416,7 @@ with tab4:
                                 value=st.session_state.get("ins_ls", False),
                                 key="ins_ls_check")
 
-    if st.button("🚀 Evaluar", key="calc_ins", type="primary"):
+    if st.button("EVALUAR", key="calc_ins", type="primary"):
         result = recommend_insulation(env, temp, low_smoke)
         st.session_state["ins_result"] = result
 
@@ -571,7 +428,7 @@ with tab4:
         rejected = r["results"]["rejected"]
 
         if recommended:
-            st.markdown("### ✅ Cables Recomendados")
+            st.markdown("### Cables Recomendados")
             for rec in recommended:
                 props = rec["props"]
                 temp_str = f"{props['max_temp_dry']} °C"
@@ -581,65 +438,51 @@ with tab4:
                 with st.container():
                     mc1, mc2 = st.columns([1, 3])
                     with mc1:
-                        st.markdown(f"### 🔌 {rec['name']}")
+                        st.markdown(f"### {rec['name']}")
                     with mc2:
                         st.markdown(f"**{props['description']}**")
                         st.markdown(f"- Temperatura: {temp_str}")
                         st.markdown(f"- Ambientes: {', '.join(props['environments'])}")
-                        ls = "✅ Sí" if props["low_smoke"] else "—"
+                        ls = "Si" if props["low_smoke"] else "—"
                         st.markdown(f"- Baja emisión humos: {ls}")
                     st.markdown("---")
 
         if rejected:
-            with st.expander(f"❌ Cables descartados ({len(rejected)})", expanded=False):
+            with st.expander(f"Cables descartados ({len(rejected)})", expanded=False):
                 for rej in rejected:
                     reason = rej["reasons"][0]
                     st.markdown(f"- **{rej['name']}**: {reason}")
 
         render_steps(r)
 
-
-# ══════════════════════════════════════════════════════════════════
-# Sidebar — Información general y tabla de referencia
-# ══════════════════════════════════════════════════════════════════
-
 with st.sidebar:
-    st.markdown("## ⚡ Referencia Rápida")
+    st.markdown("##REFERENCIAS")
     st.markdown("---")
 
-    with st.expander("📋 Tabla AWG → mm²"):
+    with st.expander("Tabla AWG → mm2"):
         for awg in AWG_SELECTION_ORDER:
             area = AWG_AREA_MM2[awg]
             amp_75 = AMPACITY_COPPER.get(awg, {}).get(75, "—")
-            st.markdown(f"**{awg}** AWG = {area} mm² ({amp_75} A @ 75°C)")
+            st.markdown(f"**{awg}** AWG = {area} mm2 ({amp_75} A @ 75°C)")
 
-    with st.expander("🔧 Tubería Conduit PVC"):
+    with st.expander("Tuberia Conduit PVC"):
         for label, area in CONDUIT_PVC.items():
             d = 2 * math.sqrt(area / math.pi)
-            st.markdown(f"**{label}**: {area} mm² (⌀ ≈ {d:.1f} mm)")
+            st.markdown(f"**{label}**: {area} mm2 (d {d:.1f} mm)")
 
-    with st.expander("⚡ Resistividades"):
+    with st.expander("Resistividades"):
         for mat, rho in RESISTIVITY.items():
-            st.markdown(f"**{mat}**: ρ = {rho} Ω·mm²/m")
+            st.markdown(f"**{mat}**: p = {rho} Ohm mm2/m")
 
-    with st.expander("📏 Factores de relleno"):
+    with st.expander("Factores de relleno"):
         for k, v in FILL_FACTORS.items():
-            label = f"{k} conductor(es)" if k != "3+" else "3 o más conductores"
+            label = f"{k} conductor(es)" if k != "3+" else "3 o mas conductores"
             st.markdown(f"**{label}**: {v*100:.0f}%")
 
-    st.markdown("---")
-    st.caption("Motor: SciPy · Gráficos: Plotly · UI: Streamlit")
-
-
-# ══════════════════════════════════════════════════════════════════
-# Pie de página
-# ══════════════════════════════════════════════════════════════════
 
 st.markdown("---")
 st.markdown("""
 <div style="text-align: center; opacity: 0.45; font-size: 0.85rem; padding: 1rem 0;">
-    Calculadora de Instalaciones Eléctricas BT · NOM-001-SEDE / NEC ·
-    Streamlit + Plotly
+    Calculadora de Instalaciones Electricas
 </div>
 """, unsafe_allow_html=True)
-
