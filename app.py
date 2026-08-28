@@ -242,9 +242,9 @@ with tab2:
 
         c1, c2, c3 = st.columns(3)
         with c1:
-            vd_length = st.number_input("L (Longitud, m)", value=st.session_state.get("vd_length", 0),
+            vd_length = st.number_input("L (Longitud, m)", value=st.session_state.get("vd_length", 0.1),
                                         min_value=0.1, step=1.0, format="%.2f", key="vd_l")
-            vd_current = st.number_input("I (Corriente, A)", value=st.session_state.get("vd_current", 0),
+            vd_current = st.number_input("I (Corriente, A)", value=st.session_state.get("vd_current", 0.1),
                                          min_value=0.01, step=0.5, format="%.2f", key="vd_i")
         with c2:
             vd_material = st.selectbox("Material", list(RESISTIVITY.keys()),
@@ -256,7 +256,7 @@ with tab2:
                                       st.session_state.get("vd_awg", "10")),
                                   key="vd_awg_sel")
         with c3:
-            vd_voltage = st.number_input("V sistema (V)", value=st.session_state.get("vd_system_voltage", 0),
+            vd_voltage = st.number_input("V sistema (V)", value=st.session_state.get("vd_system_voltage", 0.1),
                                          min_value=1.0, step=1.0, format="%.1f", key="vd_vsys")
             vd_ctype = st.selectbox("Tipo de circuito",
                                     list(VOLTAGE_DROP_LIMITS.keys()),
