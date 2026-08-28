@@ -192,7 +192,7 @@ EXAMPLES: dict[str, dict] = {
             "Un foco de 100 W conectado a 120 V. "
             "Calcular la corriente y la resistencia."
         ),
-        "params": {"mode": "P y V", "P": 100.0, "V": 120.0},
+        "params": {"mode": "P y V", "P": 0.0, "V": 0.0},
     },
     "series": {
         "title": "Circuito serie con 3 resistencias",
@@ -200,7 +200,7 @@ EXAMPLES: dict[str, dict] = {
             "Tres resistencias de 10 Ω, 20 Ω y 30 Ω conectadas en serie "
             "a una fuente de 120 V."
         ),
-        "params": {"resistances": [10.0, 20.0, 30.0], "voltage": 120.0},
+        "params": {"resistances": [0, 0, 0], "voltage": 0},
     },
     "energy": {
         "title": "Aire acondicionado encendido 8 horas",
@@ -208,7 +208,7 @@ EXAMPLES: dict[str, dict] = {
             "Un aire acondicionado de 1500 W encendido durante 8 horas al día. "
             "Calcular el consumo diario en kWh."
         ),
-        "params": {"power": 1500.0, "hours": 8.0},
+        "params": {"power": 0, "hours": 0},
     },
     "voltage_drop": {
         "title": "Circuito derivado de 30 m",
@@ -217,9 +217,9 @@ EXAMPLES: dict[str, dict] = {
             "30 m de longitud y carga de 20 A. Verificar la caída de tensión."
         ),
         "params": {
-            "length": 30.0, "current": 20.0,
-            "material": "Cobre", "awg": "10",
-            "system_voltage": 127.0, "circuit_type": "derivado",
+            "length": 0, "current": 0,
+            "material": "Cobre", "awg": "0",
+            "system_voltage": 0, "circuit_type": "derivado",
         },
     },
     "voltage_drop_inv": {
@@ -229,9 +229,9 @@ EXAMPLES: dict[str, dict] = {
             "y 50 m de recorrido en cobre. Encontrar el calibre mínimo."
         ),
         "params": {
-            "length": 50.0, "current": 15.0,
-            "material": "Cobre", "system_voltage": 127.0,
-            "max_drop_pct": 3.0,
+            "length": 0, "current": 0,
+            "material": "Cobre", "system_voltage": 0,
+            "max_drop_pct": 0,
         },
     },
     "conduit": {
