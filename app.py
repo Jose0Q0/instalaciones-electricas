@@ -41,7 +41,7 @@ from engine import (
 )
 
 st.set_page_config(
-    page_title="Calculadora Eléctrica BT",
+    page_title="Calculadora Eléctrica",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -89,9 +89,9 @@ def render_steps(result: dict) -> None:
 def render_diagnosis(result: dict) -> None:
     diag = result["diagnosis"]
     if diag["status"] == "pass":
-        st.success(diag["message"], icon="✅")
+        st.success(diag["message"], icon=" ")
     elif diag["status"] == "fail":
-        st.error(diag["message"], icon="❌")
+        st.error(diag["message"], icon=" ")
     else:
         st.info(diag["message"], icon="ℹ️")
 
@@ -102,7 +102,7 @@ def limpiar_todo():
 
 st.markdown("""
 <div class="main-header">
-    <h1>Calculadora de Instalaciones Eléctricas BT</h1>
+    <h1>Calculadora de Instalaciones Eléctricas</h1>
     <p>Ley de Ohm · Caída de Tensión · Tubería Conduit · Aislamiento</p>
 </div>
 """, unsafe_allow_html=True)
@@ -335,14 +335,14 @@ with tab3:
 
     bc1, bc2, _ = st.columns([1, 1, 3])
     with bc1:
-        if st.button("Agregar fila", key="add_row"):
+        if st.button("➕ Agregar fila", key="add_row"):
             st.session_state["conduit_rows"].append(
                 {"qty": 1, "awg": "12", "insulation": "THHN"}
             )
             st.rerun()
     with bc2:
         if len(st.session_state["conduit_rows"]) > 1:
-            if st.button("Quitar ultima", key="rm_row"):
+            if st.button("➖ Quitar última", key="rm_row"):
                 st.session_state["conduit_rows"].pop()
                 st.rerun()
 
@@ -456,7 +456,7 @@ with tab4:
         render_steps(r)
 
 with st.sidebar:
-    st.markdown("##REFERENCIAS")
+    st.markdown("--REFERENCIAS--")
     st.markdown("---")
 
     with st.expander("Tabla AWG → mm2"):
