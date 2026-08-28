@@ -136,22 +136,22 @@ with tab1:
                                      step=0.1, format="%.4f", key="ohm_vi_i")
                 params = {"V": v1, "I": v2}
             elif mode == "V y R":
-                v1 = st.number_input("V (Voltaje)", value=0, step=0.1, format="%.2f", key="ohm_vr_v")
-                v2 = st.number_input("R (Resistencia, Ω)", value=0, step=0.1, format="%.4f", key="ohm_vr_r")
+                v1 = st.number_input("V (Voltaje)", value=120.0, step=0.1, format="%.2f", key="ohm_vr_v")
+                v2 = st.number_input("R (Resistencia, Ω)", value=60.0, step=0.1, format="%.4f", key="ohm_vr_r")
                 params = {"V": v1, "R": v2}
             elif mode == "I y R":
-                v1 = st.number_input("I (Corriente, A)", value=0, step=0.1, format="%.4f", key="ohm_ir_i")
-                v2 = st.number_input("R (Resistencia, Ω)", value=0, step=0.1, format="%.4f", key="ohm_ir_r")
+                v1 = st.number_input("I (Corriente, A)", value=2.0, step=0.1, format="%.4f", key="ohm_ir_i")
+                v2 = st.number_input("R (Resistencia, Ω)", value=60.0, step=0.1, format="%.4f", key="ohm_ir_r")
                 params = {"I": v1, "R": v2}
             elif mode == "P y V":
-                v1 = st.number_input("P (Potencia, W)", value=st.session_state.get("ohm_v2", 0),
+                v1 = st.number_input("P (Potencia, W)", value=st.session_state.get("ohm_v2", 100.0),
                                      step=1.0, format="%.2f", key="ohm_pv_p")
-                v2 = st.number_input("V (Voltaje)", value=st.session_state.get("ohm_v1", 0),
+                v2 = st.number_input("V (Voltaje)", value=st.session_state.get("ohm_v1", 120.0),
                                      step=0.1, format="%.2f", key="ohm_pv_v")
                 params = {"P": v1, "V": v2}
             else:
-                v1 = st.number_input("P (Potencia, W)", value=0, step=1.0, format="%.2f", key="ohm_pi_p")
-                v2 = st.number_input("I (Corriente, A)", value=0, step=0.1, format="%.4f", key="ohm_pi_i")
+                v1 = st.number_input("P (Potencia, W)", value=100.0, step=1.0, format="%.2f", key="ohm_pi_p")
+                v2 = st.number_input("I (Corriente, A)", value=2.0, step=0.1, format="%.4f", key="ohm_pi_i")
                 params = {"P": v1, "I": v2}
 
         if st.button("CALCULAR", key="calc_ohm", type="primary"):
@@ -169,11 +169,11 @@ with tab1:
 
 
     elif sub1 == "Circuito Serie":
-        st.button("Limpiar todo", key="clear_series", on_click=limpiar_todo)
+        st.button("Limpiar", key="clear_series", on_click=limpiar_todo)
 
-        voltage = st.number_input("V fuente (V)", value=st.session_state.get("series_v", 0),
+        voltage = st.number_input("V fuente (V)", value=st.session_state.get("series_v", 120.0),
                                   step=0.1, format="%.2f", key="series_voltage")
-        n_res = st.number_input("Número de resistencias", value=st.session_state.get("series_n", 0),
+        n_res = st.number_input("Número de resistencias", value=st.session_state.get("series_n", 3),
                                 min_value=2, max_value=10, step=1, key="series_n_input")
 
         resistances = []
@@ -181,7 +181,7 @@ with tab1:
         for i in range(int(n_res)):
             with cols[i % len(cols)]:
                 r_val = st.number_input(
-                    f"R{i+1} (Ω)", value=st.session_state.get(f"series_r{i}", 0),
+                    f"R{i+1} (Ω)", value=st.session_state.get(f"series_r{i}", 10.0),
                     min_value=0.001, step=1.0, format="%.2f", key=f"res_{i}",
                 )
                 resistances.append(r_val)
@@ -238,13 +238,13 @@ with tab2:
     )
 
     if sub2 == "Calcular ΔV (directo)":
-        st.button("Limpiar todo", key="clear_vd", on_click=limpiar_todo)
+        st.button("Limpiar", key="clear_vd", on_click=limpiar_todo)
 
         c1, c2, c3 = st.columns(3)
         with c1:
-            vd_length = st.number_input("L (Longitud, m)", value=st.session_state.get("vd_length", 0.1),
+            vd_length = st.number_input("L (Longitud, m)", value=st.session_state.get("vd_length", 30.0),
                                         min_value=0.1, step=1.0, format="%.2f", key="vd_l")
-            vd_current = st.number_input("I (Corriente, A)", value=st.session_state.get("vd_current", 0.1),
+            vd_current = st.number_input("I (Corriente, A)", value=st.session_state.get("vd_current", 20.0),
                                          min_value=0.01, step=0.5, format="%.2f", key="vd_i")
         with c2:
             vd_material = st.selectbox("Material", list(RESISTIVITY.keys()),
@@ -256,14 +256,14 @@ with tab2:
                                       st.session_state.get("vd_awg", "10")),
                                   key="vd_awg_sel")
         with c3:
-            vd_voltage = st.number_input("V sistema (V)", value=st.session_state.get("vd_system_voltage", 0.1),
+            vd_voltage = st.number_input("V sistema (V)", value=st.session_state.get("vd_system_voltage", 127.0),
                                          min_value=1.0, step=1.0, format="%.1f", key="vd_vsys")
             vd_ctype = st.selectbox("Tipo de circuito",
                                     list(VOLTAGE_DROP_LIMITS.keys()),
                                     index=list(VOLTAGE_DROP_LIMITS.keys()).index(
                                         st.session_state.get("vd_circuit_type", "derivado")),
                                     key="vd_ct")
-
+            
         if st.button("CALCULAR", key="calc_vd", type="primary"):
             result = calc_voltage_drop(vd_length, vd_current, vd_material,
                                        vd_awg, vd_voltage, vd_ctype)
@@ -286,12 +286,12 @@ with tab2:
         st.button("Limpiar todo", key="clear_vdi", on_click=limpiar_todo)
 
         c1, c2 = st.columns(2)
-        with c1:
+       with c1:
             vdi_length = st.number_input("L (Longitud, m)",
-                                         value=st.session_state.get("vdi_length", 0),
+                                         value=st.session_state.get("vdi_length", 50.0),
                                          min_value=0.1, step=1.0, format="%.2f", key="vdi_l")
             vdi_current = st.number_input("I (Corriente, A)",
-                                          value=st.session_state.get("vdi_current", 0),
+                                          value=st.session_state.get("vdi_current", 15.0),
                                           min_value=0.01, step=0.5, format="%.2f", key="vdi_i")
             vdi_material = st.selectbox("Material", list(RESISTIVITY.keys()),
                                         index=list(RESISTIVITY.keys()).index(
@@ -299,10 +299,10 @@ with tab2:
                                         key="vdi_mat")
         with c2:
             vdi_voltage = st.number_input("V sistema (V)",
-                                          value=st.session_state.get("vdi_system_voltage", 0),
+                                          value=st.session_state.get("vdi_system_voltage", 127.0),
                                           min_value=1.0, step=1.0, format="%.1f", key="vdi_vsys")
             vdi_drop = st.number_input("% ΔV máximo permitido",
-                                       value=st.session_state.get("vdi_max_drop_pct", 0),
+                                       value=st.session_state.get("vdi_max_drop_pct", 3.0),
                                        min_value=0.1, max_value=10.0, step=0.5,
                                        format="%.1f", key="vdi_drop")
 
@@ -324,7 +324,7 @@ with tab2:
             render_steps(r)
 
 with tab3:
-    st.button("Limpiar todo", key="clear_conduit", on_click=limpiar_todo)
+    st.button("Limpiar", key="clear_conduit", on_click=limpiar_todo)
 
     if "conduit_rows" not in st.session_state:
         st.session_state["conduit_rows"] = [
@@ -396,7 +396,7 @@ with tab3:
         render_steps(r)
 
 with tab4:
-    st.button("Limpiar todo", key="clear_ins", on_click=limpiar_todo)
+    st.button("Limpiar", key="clear_ins", on_click=limpiar_todo)
 
     c1, c2, c3 = st.columns(3)
     environments = ["seco", "húmedo", "mojado"]
