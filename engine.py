@@ -1,14 +1,3 @@
-"""
-engine.py — Motor de cálculos para instalaciones eléctricas de baja tensión.
-
-Funciones puras que reciben parámetros numéricos y retornan diccionarios con:
-  - "steps":     lista de pasos con LaTeX y explicaciones
-  - "results":   diccionario de resultados numéricos
-  - "diagnosis": estado ("pass" / "fail" / "info") y mensaje
-
-La lógica está completamente separada de la interfaz (app.py).
-"""
-
 from __future__ import annotations
 
 import math
@@ -26,10 +15,6 @@ from app_config import (
     get_fill_factor,
 )
 
-
-# ──────────────────────────── Helpers ────────────────────────────
-
-
 def _fmt(x: float, d: int = 4) -> str:
     """Formatea un número: enteros sin decimales, flotantes con *d* dígitos."""
     if isinstance(x, int) or (isinstance(x, float) and x == int(x) and abs(x) < 1e12):
@@ -46,18 +31,13 @@ def _step(title: str, latex: list[str], explanation: str = "") -> dict:
     """Atajo para crear un paso del procedimiento."""
     return {"title": title, "latex": latex, "explanation": explanation}
 
-
-# ══════════════════════════════════════════════════════════════════
-# MÓDULO 1 — Ley de Ohm, Ley de Watt y Circuitos Básicos
-# ══════════════════════════════════════════════════════════════════
-
-
+#Ley de Ohm, Ley de Watt y Circuitos Básicos
 OHM_MODES = [
-    "V e I",     # → R, P
-    "V y R",     # → I, P
-    "I y R",     # → V, P
-    "P y V",     # → I, R
-    "P e I",     # → V, R
+    "V e I",     
+    "V y R",     
+    "I y R",     
+    "P y V",     
+    "P e I",   
 ]
 
 
@@ -167,9 +147,7 @@ def calc_ohm_watt(mode: str, **kw) -> dict:
             "diagnosis": {"status": "info", "message": "Cálculo completado correctamente."}}
 
 
-# ── Circuito serie ──
-
-
+#Circuito serie
 def calc_series_circuit(resistances: list[float], voltage: float) -> dict:
     """Análisis de circuito serie: R_total, I, divisiones de tensión."""
 
@@ -178,7 +156,6 @@ def calc_series_circuit(resistances: list[float], voltage: float) -> dict:
     drops = [I * r for r in resistances]
     n = len(resistances)
 
-    # Paso 1
     r_latex = " + ".join(rf"R_{{{i+1}}}" for i in range(n))
     r_vals = " + ".join(_fmu(r, "Ω") for r in resistances)
     s1 = _step("Fórmulas Aplicadas", [
@@ -187,13 +164,11 @@ def calc_series_circuit(resistances: list[float], voltage: float) -> dict:
         r"V_i = I \cdot R_i \quad (\text{división de tensión})",
     ])
 
-    # Paso 2
     s2 = _step("Sustitución Numérica", [
         rf"R_{{total}} = {r_vals} = {_fmu(R_total, 'Ω')}",
         rf"I = \frac{{{_fmu(voltage, 'V')}}}{{{_fmu(R_total, 'Ω')}}} = {_fmu(I, 'A')}",
     ])
 
-    # Paso 3
     drop_lines = [
         rf"V_{{{i+1}}} = {_fmu(I, 'A')} \times {_fmu(r, 'Ω')} = {_fmu(d, 'V')}"
         for i, (r, d) in enumerate(zip(resistances, drops))
@@ -205,7 +180,6 @@ def calc_series_circuit(resistances: list[float], voltage: float) -> dict:
         rf"\boxed{{I = {_fmu(I, 'A')}}}",
     ] + drop_lines)
 
-    # Paso 4
     s4 = _step("Diagnóstico", [],
         f"Circuito serie con **{n} resistencias**. "
         f"La corriente constante es **{_fmt(I)} A** en todo el circuito. "
@@ -219,9 +193,7 @@ def calc_series_circuit(resistances: list[float], voltage: float) -> dict:
             "diagnosis": {"status": "pass", "message": "Ley de Kirchhoff verificada."}}
 
 
-# ── Consumo energético ──
-
-
+#Consumo energético
 def calc_energy(power_w: float, hours: float) -> dict:
     """W = P × t en kWh."""
 
@@ -248,12 +220,7 @@ def calc_energy(power_w: float, hours: float) -> dict:
             "results": {"Wh": wh, "kWh": kwh},
             "diagnosis": {"status": "info", "message": f"Consumo: {_fmt(kwh)} kWh."}}
 
-
-# ══════════════════════════════════════════════════════════════════
-# MÓDULO 2 — Caída de Tensión y Selección de Calibre
-# ══════════════════════════════════════════════════════════════════
-
-
+#Caída de Tensión
 def calc_voltage_drop(
     length: float, current: float, material: str,
     awg: str, system_voltage: float, circuit_type: str = "derivado",
@@ -266,36 +233,31 @@ def calc_voltage_drop(
     dv_pct = (dv / system_voltage) * 100
     limit_pct = VOLTAGE_DROP_LIMITS[circuit_type] * 100
 
-    # Paso 1
     s1 = _step("Fórmulas Aplicadas", [
         r"\Delta V = \frac{2 \cdot L \cdot I \cdot \rho}{A}",
         r"\%\Delta V = \frac{\Delta V}{V_{sistema}} \times 100",
     ], "Fórmula para circuitos monofásicos (ida y vuelta del conductor).")
 
-    # Paso 2
     s2 = _step("Sustitución Numérica", [
         rf"\rho_{{\text{{{material}}}}} = {_fmu(rho, 'Ω·mm²/m')}",
         rf"A_{{{awg}\,\text{{AWG}}}} = {_fmu(area, 'mm²')}",
         rf"\Delta V = \frac{{2 \times {_fmu(length, 'm')} \times {_fmu(current, 'A')} \times {_fmt(rho)}}}{{{_fmu(area, 'mm²')}}}",
     ])
 
-    # Paso 3
     s3 = _step("Resultado", [
         rf"\boxed{{\Delta V = {_fmu(dv, 'V')}}}",
         rf"\%\Delta V = \frac{{{_fmt(dv)}}}{{{_fmt(system_voltage)}}} \times 100 = {_fmt(dv_pct, 2)}\%",
     ])
 
-    # Paso 4: Diagnóstico
     passes = dv_pct <= limit_pct
     if passes:
         status = "pass"
-        msg = (f"✅ **Cumple con la norma.** La caída de tensión ({_fmt(dv_pct, 2)}%) "
+        msg = (f"**Cumple con la norma.** La caída de tensión ({_fmt(dv_pct, 2)}%) "
                f"no excede el límite de {_fmt(limit_pct)}% para circuito {circuit_type}.")
     else:
-        # Sugerir calibre adecuado
         suggestion = _suggest_awg(length, current, rho, system_voltage, limit_pct)
         status = "fail"
-        msg = (f"❌ **Excede el límite normativo.** La caída de tensión ({_fmt(dv_pct, 2)}%) "
+        msg = (f"**Excede el límite normativo.** La caída de tensión ({_fmt(dv_pct, 2)}%) "
                f"supera el máximo de {_fmt(limit_pct)}% para circuito {circuit_type}. "
                f"**Propuesta:** Usar calibre **{suggestion}** o mayor.")
 
@@ -320,7 +282,6 @@ def calc_min_conductor(
     recommended = _suggest_awg_from_area(a_min)
     rec_area = AWG_AREA_MM2.get(recommended, a_min)
 
-    # Verificar la caída real con el calibre recomendado
     dv_actual = 2 * length * current * rho / rec_area
     dv_actual_pct = (dv_actual / system_voltage) * 100
 
@@ -341,7 +302,7 @@ def calc_min_conductor(
     s4 = _step("Diagnóstico y Validación Normativa", [
         rf"\Delta V_{{real}} = \frac{{2 \times {_fmt(length)} \times {_fmt(current)} \times {_fmt(rho)}}}{{{_fmt(rec_area)}}} = {_fmu(dv_actual, 'V')}",
         rf"\%\Delta V_{{real}} = {_fmt(dv_actual_pct, 2)}\% \leq {_fmt(max_drop_pct)}\%",
-    ], f"✅ Con calibre **{recommended} AWG**, la caída real es "
+    ], f"Con calibre **{recommended} AWG**, la caída real es "
        f"**{_fmt(dv_actual_pct, 2)}%** ≤ {_fmt(max_drop_pct)}%.")
 
     return {"steps": [s1, s2, s3, s4],
@@ -366,25 +327,18 @@ def _suggest_awg_from_area(a_min: float) -> str:
             return awg
     return "4/0"  # Máximo estándar
 
-
-# ══════════════════════════════════════════════════════════════════
-# MÓDULO 3 — Dimensionamiento de Tubería Conduit PVC
-# ══════════════════════════════════════════════════════════════════
-
-
+#Dimensionamiento de Tubería Conduit PVC
 def calc_conduit_fill(conductors: list[dict]) -> dict:
     """Calcula el factor de relleno y selecciona tubería Conduit PVC.
 
     conductors: [{"qty": int, "awg": str, "insulation": str}, ...]
     """
 
-    # Calcular área total de conductores y cantidad total
     total_qty = sum(c["qty"] for c in conductors)
     details: list[dict] = []
     total_area = 0.0
 
     for c in conductors:
-        # Determinar grupo de aislamiento
         ins = c["insulation"]
         if ins in ("THHN", "THWN", "XHHW"):
             group = "THHN"
@@ -399,17 +353,13 @@ def calc_conduit_fill(conductors: list[dict]) -> dict:
             "group": group, "unit_area": unit_area, "subtotal": subtotal,
         })
 
-    # Factor de relleno
     fr = get_fill_factor(total_qty)
     fr_pct = fr * 100
 
-    # Área mínima del tubo
     a_tube_min = total_area / fr
 
-    # Diámetro teórico
     d_min = 2 * math.sqrt(a_tube_min / math.pi)
 
-    # Seleccionar tubo comercial
     selected_conduit = None
     selected_area = 0
     for label in CONDUIT_LABELS:
@@ -419,8 +369,7 @@ def calc_conduit_fill(conductors: list[dict]) -> dict:
             selected_area = area
             break
 
-    # ── Pasos ──
-    # Paso 1
+    #Pasos
     area_lines = []
     for det in details:
         area_lines.append(
@@ -434,7 +383,6 @@ def calc_conduit_fill(conductors: list[dict]) -> dict:
         r"d = 2\sqrt{\frac{A_T}{\pi}}",
     ] + area_lines)
 
-    # Paso 2
     s2 = _step("Sustitución Numérica", [
         rf"A_c = {_fmu(total_area, 'mm²')}",
         rf"\text{{Conductores totales}} = {total_qty} \Rightarrow F_r = {_fmt(fr_pct, 0)}\%",
@@ -442,7 +390,6 @@ def calc_conduit_fill(conductors: list[dict]) -> dict:
         rf"d_{{min}} = 2\sqrt{{\frac{{{_fmt(a_tube_min)}}}{{\pi}}}} = {_fmu(d_min, 'mm')}",
     ])
 
-    # Paso 3
     if selected_conduit:
         fill_actual = (total_area / selected_area) * 100
         s3 = _step("Resultado", [
@@ -454,22 +401,21 @@ def calc_conduit_fill(conductors: list[dict]) -> dict:
     else:
         fill_actual = 100
         s3 = _step("Resultado", [],
-            "⚠️ Ninguna tubería estándar satisface el requerimiento. "
+            "Ninguna tubería estándar satisface el requerimiento. "
             "Considere dividir los conductores en múltiples tuberías.")
 
-    # Paso 4
     passes = selected_conduit is not None and fill_actual <= fr_pct
     if passes:
-        msg = (f"✅ **Cumple con la norma.** El factor de relleno real "
+        msg = (f"**Cumple con la norma.** El factor de relleno real "
                f"({_fmt(fill_actual, 1)}%) no excede el {_fmt(fr_pct, 0)}% permitido.")
         status = "pass"
     elif selected_conduit:
-        msg = (f"❌ **Factor de relleno superado.** El relleno real "
+        msg = (f"**Factor de relleno superado.** El relleno real "
                f"({_fmt(fill_actual, 1)}%) excede el {_fmt(fr_pct, 0)}% permitido. "
                f"Considere una tubería de mayor diámetro.")
         status = "fail"
     else:
-        msg = "❌ **Se requieren tuberías múltiples.** La carga excede toda tubería estándar."
+        msg = "**Se requieren tuberías múltiples.** La carga excede toda tubería estándar."
         status = "fail"
 
     s4 = _step("Diagnóstico y Validación Normativa", [], msg)
@@ -486,12 +432,7 @@ def calc_conduit_fill(conductors: list[dict]) -> dict:
         "diagnosis": {"status": status, "message": msg},
     }
 
-
-# ══════════════════════════════════════════════════════════════════
-# MÓDULO 4 — Asistente de Aislamiento y Entorno Ambiental
-# ══════════════════════════════════════════════════════════════════
-
-
+#Aislamiento y Entorno Ambiental
 def recommend_insulation(
     environment: str,
     min_temp: int,
@@ -507,18 +448,15 @@ def recommend_insulation(
     recommended: list[dict] = []
     rejected: list[dict] = []
 
-    # Determinar si usamos max_temp_dry o max_temp_wet según el ambiente
     use_wet = environment == "mojado"
 
     for name, props in CABLE_TYPES.items():
         reasons_reject: list[str] = []
         reasons_accept: list[str] = []
 
-        # 1. Verificar ambiente
         if environment not in props["environments"]:
             reasons_reject.append(f"No apto para ambiente {environment}")
 
-        # 2. Verificar temperatura
         if use_wet and props["max_temp_wet"] is not None:
             effective_temp = props["max_temp_wet"]
         elif use_wet and props["max_temp_wet"] is None:
@@ -532,7 +470,6 @@ def recommend_insulation(
                 f"Temperatura máxima ({effective_temp} °C) insuficiente "
                 f"(se requiere ≥ {min_temp} °C)")
 
-        # 3. Verificar baja emisión de humos
         if low_smoke and not props["low_smoke"]:
             reasons_reject.append("No tiene clasificación -LS (baja emisión de humos)")
 
@@ -555,7 +492,7 @@ def recommend_insulation(
     s2_lines = []
     for r in recommended:
         s2_lines.append(rf"\checkmark\; \textbf{{{r['name']}}} — {r['props']['description']}")
-    for r in rejected[:3]:  # Mostrar hasta 3 rechazados
+    for r in rejected[:3]: 
         reason = r["reasons"][0]
         s2_lines.append(rf"\times\; \text{{{r['name']}}}: {reason}")
 
@@ -569,16 +506,16 @@ def recommend_insulation(
             f"Se encontraron **{len(recommended)} tipos** de cable compatibles.")
     else:
         s3 = _step("Resultado", [],
-            "⚠️ **No se encontraron cables compatibles** con todos los requisitos. "
+            "**No se encontraron cables compatibles** con todos los requisitos. "
             "Revise los criterios o considere cables especializados.")
 
     if recommended:
         best = recommended[0]["name"]
-        msg = (f"✅ Cable recomendado: **{best}**. "
+        msg = (f"Cable recomendado: **{best}**. "
                f"Total de opciones compatibles: {len(recommended)}.")
         status = "pass"
     else:
-        msg = "❌ No hay cables compatibles con todos los requisitos."
+        msg = "No hay cables compatibles con todos los requisitos."
         status = "fail"
 
     s4 = _step("Diagnóstico", [], msg)
