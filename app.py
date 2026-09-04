@@ -277,7 +277,7 @@ def limpiar_todo():
 st.markdown("""
 <div class="brand-header">
     <h1>Calculadora de Instalaciones Electricas</h1>
-    <div class="sub">Baja Tension &middot; NOM-001-SEDE</div>
+    <div class="sub">UdeO</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -650,4 +650,4 @@ with st.sidebar:
             st.markdown(f"**{label}**: {v*100:.0f}%")
 
 
-st.markdown('<div class="footer">Calculadora de Instalaciones Electricas BT</div>', unsafe_allow_html=True)
+st.markdown('<div class="footer">Hecho Por: José Mario García Caxaj</div>', unsafe_allow_html=True)
