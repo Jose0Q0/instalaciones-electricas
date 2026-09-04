@@ -15,7 +15,7 @@ except ModuleNotFoundError as exc:
         "Streamlit no esta instalado. Ejecuta: pip install streamlit"
     ) from exc
 
-from app_config import (
+from tablas import (
     AMPACITY_COPPER,
     AWG_AREA_MM2,
     AWG_LABELS,
@@ -29,7 +29,7 @@ from app_config import (
     RESISTIVITY,
     VOLTAGE_DROP_LIMITS,
 )
-from engine import (
+from calculos import (
     OHM_MODES,
     calc_conduit_fill,
     calc_energy,
@@ -41,7 +41,7 @@ from engine import (
 )
 
 st.set_page_config(
-    page_title="Calculadora Electrica BT",
+    page_title="Calculadora Electrica ",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -314,8 +314,8 @@ with tab1:
                 v2 = st.number_input("R (Resistencia)", value=60.0, step=0.1, format="%.4f", key="ohm_vr_r")
                 params = {"V": v1, "R": v2}
             elif mode == "I y R":
-                v1 = st.number_input("I (Corriente, A)", value=2.0, step=0.1, format="%.4f", key="ohm_ir_i")
-                v2 = st.number_input("R (Resistencia)", value=60.0, step=0.1, format="%.4f", key="ohm_ir_r")
+                v1 = st.number_input("I (Corriente, A)", value=2.0, step=0.1, format="%.2f", key="ohm_ir_i")
+                v2 = st.number_input("R (Resistencia)", value=60.0, step=0.1, format="%.2f", key="ohm_ir_r")
                 params = {"I": v1, "R": v2}
             elif mode == "P y V":
                 v1 = st.number_input("P (Potencia, W)", value=st.session_state.get("ohm_v2", 100.0),
@@ -325,7 +325,7 @@ with tab1:
                 params = {"P": v1, "V": v2}
             else:
                 v1 = st.number_input("P (Potencia, W)", value=100.0, step=1.0, format="%.2f", key="ohm_pi_p")
-                v2 = st.number_input("I (Corriente, A)", value=2.0, step=0.1, format="%.4f", key="ohm_pi_i")
+                v2 = st.number_input("I (Corriente, A)", value=2.0, step=0.1, format="%.2f", key="ohm_pi_i")
                 params = {"P": v1, "I": v2}
 
         if st.button("CALCULAR", key="calc_ohm", type="primary"):
@@ -338,7 +338,7 @@ with tab1:
             cols = st.columns(4)
             for i, (k, unit) in enumerate([("V", "V"), ("I", "A"), ("R", "Ohm"), ("P", "W")]):
                 with cols[i]:
-                    st.metric(k, f"{r['results'][k]:.4f} {unit}")
+                    st.metric(k, f"{r['results'][k]:.2f} {unit}")
             render_steps(r)
 
     elif sub1 == "Circuito Serie":
@@ -368,14 +368,14 @@ with tab1:
             render_diagnosis(r)
             c1, c2 = st.columns(2)
             with c1:
-                st.metric("R total", f"{r['results']['R_total']:.4f} Ohm")
+                st.metric("R total", f"{r['results']['R_total']:.2f} Ohm")
             with c2:
-                st.metric("I (constante)", f"{r['results']['I']:.4f} A")
+                st.metric("I (constante)", f"{r['results']['I']:.2f} A")
 
             st.markdown('<div class="section-label">Caidas de tension por resistencia</div>', unsafe_allow_html=True)
             for i, d in enumerate(r["results"]["drops"]):
                 pct = (d / voltage) * 100 if voltage else 0
-                st.markdown(f"- R{i+1} = {resistances[i]} Ohm &rarr; V{i+1} = **{d:.4f} V** ({pct:.1f}%)")
+                st.markdown(f"- R{i+1} = {resistances[i]} Ohm &rarr; V{i+1} = **{d:.2f} V** ({pct:.1f}%)")
             render_steps(r)
 
     else:
@@ -400,7 +400,7 @@ with tab1:
             with c1:
                 st.metric("Consumo (Wh)", f"{r['results']['Wh']:.2f}")
             with c2:
-                st.metric("Consumo (kWh)", f"{r['results']['kWh']:.4f}")
+                st.metric("Consumo (kWh)", f"{r['results']['kWh']:.2f}")
             render_steps(r)
 
 with tab2:
@@ -447,7 +447,7 @@ with tab2:
             render_diagnosis(r)
             c1, c2, c3 = st.columns(3)
             with c1:
-                st.metric("dV", f"{r['results']['delta_v']:.4f} V")
+                st.metric("dV", f"{r['results']['delta_v']:.2f} V")
             with c2:
                 st.metric("% dV", f"{r['results']['delta_v_pct']:.2f} %")
             with c3:
@@ -489,7 +489,7 @@ with tab2:
             render_diagnosis(r)
             c1, c2, c3 = st.columns(3)
             with c1:
-                st.metric("Area minima", f"{r['results']['a_min']:.4f} mm2")
+                st.metric("Area minima", f"{r['results']['a_min']:.2f} mm2")
             with c2:
                 st.metric("Calibre recomendado", f"{r['results']['recommended_awg']} AWG")
             with c3:
@@ -650,4 +650,4 @@ with st.sidebar:
             st.markdown(f"**{label}**: {v*100:.0f}%")
 
 
-st.markdown('<div class="footer">Hecho Por: José Mario García Caxaj</div>', unsafe_allow_html=True)
+st.markdown('<div class="footer">Hecho por: José Mario García Caxaj</div>', unsafe_allow_html=True)
